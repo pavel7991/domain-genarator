@@ -41,7 +41,7 @@ function App() {
     const newLines = [];
     let itemCounter = 1;
 
-    // === ПРИОРИТЕТ №1: Точное вхождение с .casino ===
+    // ПРИОРИТЕТ №1: Точное вхождение с .casino
     newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №1: Точное вхождение с .casino' });
     newLines.push({ type: 'item', text: `${itemCounter++}) ${brandVariants.exact}.casino` });
 
@@ -49,20 +49,22 @@ function App() {
       newLines.push({ type: 'item', text: `${itemCounter++}) ${brandVariants.withHyphen}.casino` });
     }
 
-    // === ПРИОРИТЕТ №1.1: Домены .bet и .win ===
-    newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №1.1: Специальные зоны .bet/.win' });
+    // ПРИОРИТЕТ №1.1: Домены .bet и .win
+    if (brandVariants.exact.endsWith('bet') || brandVariants.exact.endsWith('win')) {
+      newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №1.1: Специальные зоны .bet/.win' });
 
-    if (brandVariants.exact.endsWith('bet')) {
-      const brandWithoutBet = brandVariants.exact.replace(/bet$/, '');
-      newLines.push({ type: 'item', text: `${itemCounter++}) ${brandWithoutBet}.bet` });
+      if (brandVariants.exact.endsWith('bet')) {
+        const brandWithoutBet = brandVariants.exact.replace(/bet$/, '');
+        newLines.push({ type: 'item', text: `${itemCounter++}) ${brandWithoutBet}.bet` });
+      }
+
+      if (brandVariants.exact.endsWith('win')) {
+        const brandWithoutWin = brandVariants.exact.replace(/win$/, '');
+        newLines.push({ type: 'item', text: `${itemCounter++}) ${brandWithoutWin}.win` });
+      }
     }
 
-    if (brandVariants.exact.endsWith('win')) {
-      const brandWithoutWin = brandVariants.exact.replace(/win$/, '');
-      newLines.push({ type: 'item', text: `${itemCounter++}) ${brandWithoutWin}.win` });
-    }
-
-    // === ПРИОРИТЕТ №1.2: Общие доменные зоны ===
+    // ПРИОРИТЕТ №1.2: Общие доменные зоны
     newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №1.2: Общие домены (.com, .net, .org)' });
 
     const commonTlds = ['.com', '.net', '.org'];
@@ -71,7 +73,7 @@ function App() {
       newLines.push({ type: 'item', text: `${itemCounter++}) ${brandVariants.withCasino}${tld}` });
     });
 
-    // === ПРИОРИТЕТ №1.3: Локальные домены ===
+    // ПРИОРИТЕТ №1.3: Локальные домены
     if (localDomainsList.length > 0) {
       newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №1.3: Локальные домены' });
 
@@ -81,7 +83,7 @@ function App() {
       });
     }
 
-    // === ПРИОРИТЕТ №2: Варианты с дефисом ===
+    // ПРИОРИТЕТ №2: Варианты с дефисом
     if (isTwoWordBrand) {
       newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №2: Варианты с дефисом (ограниченно)' });
 
@@ -91,7 +93,7 @@ function App() {
       });
     }
 
-    // === ПРИОРИТЕТ №3: Псевдо-локальные домены ===
+    // ПРИОРИТЕТ №3: Псевдо-локальные домены
     if (pseudoLocalDomainsList.length > 0) {
       newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №3: Псевдо-локальные домены' });
 
@@ -101,7 +103,7 @@ function App() {
       });
     }
 
-    // === ПРИОРИТЕТ №4: Обратное название ===
+    // ПРИОРИТЕТ №4: Обратное название
     if (cleanBrand.startsWith('casino')) {
       newLines.push({ type: 'header', text: 'ПРИОРИТЕТ №4: Обратное название' });
 
@@ -109,19 +111,9 @@ function App() {
       newLines.push({ type: 'item', text: `${itemCounter++}) ${reversedBrand}.com` });
     }
 
-    // === ИНФОРМАЦИЯ ===
-    newLines.push({ type: 'header', text: 'ИНФОРМАЦИЯ' });
-    newLines.push({ type: 'info', text: `• Исходный бренд: ${originalBrand}` });
-    newLines.push({ type: 'info', text: `• Обработанный бренд: ${brandVariants.exact}` });
-    newLines.push({ type: 'info', text: `• Тип бренда: ${isTwoWordBrand ? 'Двухсловный' : 'Однословный'}` });
-    newLines.push({ type: 'info', text: `• Локальных доменов: ${localDomainsList.length} шт.` });
-    newLines.push({ type: 'info', text: `• Псевдо-локальных доменов: ${pseudoLocalDomainsList.length} шт.` });
-    newLines.push({ type: 'info', text: `• Всего вариантов: ${itemCounter - 1}` });
-    newLines.push({ type: 'info', text: `• Обработано: ${new Date().toLocaleTimeString()}` });
-
     // Конвертируем в строки для отображения
     const outputStrings = newLines.map(line => line.text);
-    setOutputLines(prev => [...prev, ...outputStrings]);
+    setOutputLines(outputStrings);
     inputRef.current?.focus();
   };
 
@@ -134,14 +126,6 @@ function App() {
     if (e.key === 'Enter') {
       handleRun();
     }
-  };
-
-  const handleResetLocalDomains = () => {
-    setLocalDomainsInput('.uk\n.co.uk\n.org.uk\n.me.uk');
-  };
-
-  const handleResetPseudoDomains = () => {
-    setPseudoLocalDomainsInput('.gb.net\n.uk.com\n.uk.net');
   };
 
   return (
@@ -166,7 +150,7 @@ function App() {
             Запуск подбора
           </button>
           <button onClick={handleClear} className="clearButton">
-            Очистить результаты
+            Очистить
           </button>
         </div>
       </div>
@@ -178,14 +162,8 @@ function App() {
         <div className="domainsGroup">
           <div className="domainsHeader">
             <label htmlFor="localDomains">
-              Локальные домены (Приоритет 1.3):
-              <span className="domainsCount">
-                {localDomainsInput.split('\n').filter(l => l.trim().length > 0).length}
-              </span>
+              Локальные домены
             </label>
-            <button onClick={handleResetLocalDomains} className="resetButton">
-              Сбросить
-            </button>
           </div>
           <textarea
             id="localDomains"
@@ -196,7 +174,7 @@ function App() {
             rows={3}
           />
           <div className="domainsHint">
-            Пример: .uk, .co.uk, .org.uk, .me.uk
+            Пример [ .uk .co.uk .org.uk .me.uk ] - каждый с новой строки
           </div>
         </div>
 
@@ -204,14 +182,8 @@ function App() {
         <div className="domainsGroup">
           <div className="domainsHeader">
             <label htmlFor="pseudoDomains">
-              Псевдо-локальные домены (Приоритет 3):
-              <span className="domainsCount">
-                {pseudoLocalDomainsInput.split('\n').filter(l => l.trim().length > 0).length}
-              </span>
+              Псевдо-локальные домены
             </label>
-            <button onClick={handleResetPseudoDomains} className="resetButton">
-              Сбросить
-            </button>
           </div>
           <textarea
             id="pseudoDomains"
@@ -222,42 +194,46 @@ function App() {
             rows={3}
           />
           <div className="domainsHint">
-            Пример: .gb.net, .uk.com, .uk.net
+            Пример [  .gb.net .uk.com .uk.net ] - каждый с новой строки
           </div>
         </div>
 
       </div>
 
-      <div className="stats">
-        <span>Всего вариантов доменов: {outputLines.filter(line => !line.startsWith('ПРИОРИТЕТ') && !line.startsWith('ИНФОРМАЦИЯ') && !line.startsWith('•')).length}</span>
-        {outputLines.length > 0 && (
-          <button
-            onClick={() => navigator.clipboard.writeText(outputLines.join('\n'))}
-            className="copyButton"
-          >
-            Копировать всё
-          </button>
-        )}
-      </div>
-
       <div className="outputContainer">
-        <h3 className="outputTitle">Результаты подбора доменов:</h3>
+        <div className="outputHeader">
+          <h3>Результаты подбора доменов</h3>
+          <div className="outputActions">
+            <span className="counter">
+              {outputLines.filter(line => line.includes(') ')).length} вариантов
+            </span>
+            {outputLines.length > 0 && (
+              <button
+                onClick={() => navigator.clipboard.writeText(outputLines.join('\n'))}
+                className="copyButton"
+              >
+                Копировать всё
+              </button>
+            )}
+          </div>
+        </div>
+
         {outputLines.length === 0 ? (
           <div className="emptyState">
-            Введите название бренда и нажмите "Запуск подбора"...
+            <div className="emptyIcon">🔍</div>
+            <div>Введите название бренда и нажмите "Запуск подбора"</div>
+            <div className="emptyHint">Примеры: VeryWell casino, Spinbuddha, Bethall</div>
           </div>
         ) : (
           <div className="output">
             {outputLines.map((line, index) => {
-              // Определяем тип строки для стилей
-              const isHeader = line.startsWith('ПРИОРИТЕТ') || line.startsWith('ИНФОРМАЦИЯ');
-              const isInfo = line.startsWith('•');
-              const isItem = !isHeader && !isInfo && line.includes(') ');
+              const isHeader = line.startsWith('ПРИОРИТЕТ');
+              const isItem = !isHeader && line.includes(') ');
 
               return (
                 <div
                   key={index}
-                  className={`outputLine ${isHeader ? 'outputHeader' : ''} ${isInfo ? 'outputInfo' : ''} ${isItem ? 'outputItem' : ''}`}
+                  className={`outputLine ${isHeader ? 'outputHeaderLine' : ''} ${isItem ? 'outputItem' : ''}`}
                 >
                   {line}
                 </div>
@@ -265,17 +241,6 @@ function App() {
             })}
           </div>
         )}
-      </div>
-
-      <div className="instructions">
-        <p><strong>Как использовать:</strong></p>
-        <ul className="instructionList">
-          <li><strong>1.</strong> Введите название бренда (например: "VeryWell casino")</li>
-          <li><strong>2.</strong> Настройте локальные и псевдо-локальные домены при необходимости</li>
-          <li><strong>3.</strong> Нажмите "Запуск подбора" или Enter</li>
-          <li><strong>4.</strong> Все домены генерируются по алгоритму с указанными приоритетами</li>
-          <li><strong>5.</strong> Используйте "Сбросить" для возврата к стандартным настройкам</li>
-        </ul>
       </div>
     </div>
   );
