@@ -169,15 +169,18 @@ const generateDomainsWithoutCasino = (
   domainsList: string[],
   brandVariants: BrandVariants,
   isTwoWordBrand: boolean,
-  brandEndsWithCasino: boolean
+  brandEndsWithCasino: boolean,
+  containsCasinoInName: boolean
 ): string[] => {
   const items: string[] = [];
 
-  // Генерируем варианты БЕЗ casino ТОЛЬКО если бренд НЕ заканчивается на casino
-  if (!brandEndsWithCasino) {
+  // Генерируем варианты БЕЗ casino ТОЛЬКО если:
+  // 1. Бренд НЕ заканчивается на casino
+  // 2. Бренд НЕ содержит casino в середине/начале
+  if (!brandEndsWithCasino && !containsCasinoInName) {
     // 1. Базовый вариант (slotoking.com, slotoking.org)
     domainsList.forEach(tld => {
-      if (!shouldExcludeVariant(brandVariants.exact, tld, false)) {
+      if (!shouldExcludeVariant(brandVariants.exact, tld, containsCasinoInName)) {
         items.push(`${brandVariants.exact}${tld}`);
       }
     });
@@ -185,7 +188,7 @@ const generateDomainsWithoutCasino = (
     // 2. Дефисный вариант для двухсловных (sloto-king.com, sloto-king.org)
     if (isTwoWordBrand) {
       domainsList.forEach(tld => {
-        if (!shouldExcludeVariant(brandVariants.withHyphen, tld, false)) {
+        if (!shouldExcludeVariant(brandVariants.withHyphen, tld, containsCasinoInName)) {
           items.push(`${brandVariants.withHyphen}${tld}`);
         }
       });
@@ -205,16 +208,16 @@ const generateDomainsWithCasino = (
   const items: string[] = [];
 
   if (containsCasinoInName) {
-    // Когда casino часть имени бренда (casino2024, goldencasino1) - только базовые варианты
-    // (уже сгенерированы в generateDomainsWithoutCasino)
+    // Когда casino часть имени бренда (casino2024, goldencasino1)
+    // ТОЛЬКО базовые варианты без дополнительного casino
     domainsList.forEach(tld => {
       if (!shouldExcludeVariant(brandVariants.exact, tld, containsCasinoInName)) {
         items.push(`${brandVariants.exact}${tld}`);
       }
     });
 
-    // Дефисный вариант для двухсловных брендов
-    const isTwoWordBrand = brandVariants.withHyphen.includes('-');
+    // Дефисный вариант для двухсловных брендов (только если бренд изначально двухсловный)
+    const isTwoWordBrand = brandVariants.withHyphen !== brandVariants.exact;
     if (isTwoWordBrand) {
       domainsList.forEach(tld => {
         if (!shouldExcludeVariant(brandVariants.withHyphen, tld, containsCasinoInName)) {
@@ -373,6 +376,7 @@ export const generateDomainsForBrand = ({
   const commonDomainItems: string[] = [];
 
   // 1. Домен .casino ПЕРВЫМ (slotoking.casino, sloto-king.casino)
+  // НО НЕ для брендов с casino в середине/начале
   if (allUserDomains.includes('.casino')) {
     const casinoDomainItems = generateCasinoDomain(
       brandVariants,
@@ -382,27 +386,42 @@ export const generateDomainsForBrand = ({
     commonDomainItems.push(...casinoDomainItems);
   }
 
-  // 2. Домены БЕЗ casino (slotoking.com, slotoking.org, sloto-king.com, sloto-king.org)
-  // ТОЛЬКО если бренд НЕ заканчивается на casino
-  if (commonDomains.length > 0) {
-    const withoutCasinoItems = generateDomainsWithoutCasino(
-      commonDomains,
-      brandVariants,
-      isTwoWordBrand,
-      brandVariants.brandEndsWithCasino
-    );
-    commonDomainItems.push(...withoutCasinoItems);
-  }
+  // 2. Для брендов с casino в середине/начале ВСЕ варианты генерируются в generateDomainsWithCasino
+  // Поэтому generateDomainsWithoutCasino НЕ вызываем для таких брендов
 
-  // 3. Домены С casino (slotokingcasino.com, slotoking-casino.com и т.д.)
+  // 3. Генерируем все варианты
   if (commonDomains.length > 0) {
-    const withCasinoItems = generateDomainsWithCasino(
-      commonDomains,
-      brandVariants,
-      brandVariants.brandEndsWithCasino,
-      brandVariants.containsCasinoInName
-    );
-    commonDomainItems.push(...withCasinoItems);
+    // Для брендов с casino в середине/начале - только generateDomainsWithCasino
+    // Для остальных - оба
+    if (brandVariants.containsCasinoInName) {
+      // Только варианты с casino (которые включают базовые для таких брендов)
+      const withCasinoItems = generateDomainsWithCasino(
+        commonDomains,
+        brandVariants,
+        brandVariants.brandEndsWithCasino,
+        brandVariants.containsCasinoInName
+      );
+      commonDomainItems.push(...withCasinoItems);
+    } else {
+      // Варианты БЕЗ casino
+      const withoutCasinoItems = generateDomainsWithoutCasino(
+        commonDomains,
+        brandVariants,
+        isTwoWordBrand,
+        brandVariants.brandEndsWithCasino,
+        brandVariants.containsCasinoInName
+      );
+      commonDomainItems.push(...withoutCasinoItems);
+
+      // Варианты С casino
+      const withCasinoItems = generateDomainsWithCasino(
+        commonDomains,
+        brandVariants,
+        brandVariants.brandEndsWithCasino,
+        brandVariants.containsCasinoInName
+      );
+      commonDomainItems.push(...withCasinoItems);
+    }
   }
 
   if (commonDomainItems.length > 0) {
@@ -416,23 +435,35 @@ export const generateDomainsForBrand = ({
   if (localDomainsList.length > 0) {
     const localDomainItems: string[] = [];
 
-    // 1. Локальные домены БЕЗ casino ТОЛЬКО если бренд НЕ заканчивается на casino
-    const localWithoutCasinoItems = generateDomainsWithoutCasino(
-      localDomainsList,
-      brandVariants,
-      isTwoWordBrand,
-      brandVariants.brandEndsWithCasino
-    );
-    localDomainItems.push(...localWithoutCasinoItems);
+    if (brandVariants.containsCasinoInName) {
+      // Только варианты с casino (которые включают базовые для таких брендов)
+      const localWithCasinoItems = generateDomainsWithCasino(
+        localDomainsList,
+        brandVariants,
+        brandVariants.brandEndsWithCasino,
+        brandVariants.containsCasinoInName
+      );
+      localDomainItems.push(...localWithCasinoItems);
+    } else {
+      // Локальные домены БЕЗ casino
+      const localWithoutCasinoItems = generateDomainsWithoutCasino(
+        localDomainsList,
+        brandVariants,
+        isTwoWordBrand,
+        brandVariants.brandEndsWithCasino,
+        brandVariants.containsCasinoInName
+      );
+      localDomainItems.push(...localWithoutCasinoItems);
 
-    // 2. Локальные домены С casino
-    const localWithCasinoItems = generateDomainsWithCasino(
-      localDomainsList,
-      brandVariants,
-      brandVariants.brandEndsWithCasino,
-      brandVariants.containsCasinoInName
-    );
-    localDomainItems.push(...localWithCasinoItems);
+      // Локальные домены С casino
+      const localWithCasinoItems = generateDomainsWithCasino(
+        localDomainsList,
+        brandVariants,
+        brandVariants.brandEndsWithCasino,
+        brandVariants.containsCasinoInName
+      );
+      localDomainItems.push(...localWithCasinoItems);
+    }
 
     if (localDomainItems.length > 0) {
       newLines.push({ type: 'header', text: 'Локальные домены' });
