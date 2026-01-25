@@ -56,8 +56,8 @@ function App() {
       withHyphen: brandWithHyphen,
       withCasino: brandWithCasino,
       exactHyphenCasino: brandExactHyphenCasino,
-      casinoPrefixBrandSlit: casinoPrefixBrandSlit, // ПЕРВЫЙ: слитный
-      casinoPrefixBrand: casinoPrefixBrand,         // ВТОРОЙ: дефисный
+      casinoPrefixBrandSlit: casinoPrefixBrandSlit,
+      casinoPrefixBrand: casinoPrefixBrand,
       containsCasinoWord: containsCasinoWord
     };
 
@@ -101,6 +101,99 @@ function App() {
         return true;
       }
       return false;
+    };
+
+    // Общая функция для генерации доменов (для глобальных и локальных)
+    const generateDomains = (domainsList: string[], brandVariants: any, containsCasinoWord: boolean, isTwoWordBrand: boolean) => {
+      const items: string[] = [];
+
+      if (containsCasinoWord) {
+        // Когда ввод содержит "casino" - порядок ВАЖЕН!
+
+        // 1. tucancasino.com
+        domainsList.forEach(tld => {
+          if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
+            items.push(`${brandVariants.withCasino}${tld}`);
+          }
+        });
+
+        // 2. tucan-casino.com
+        domainsList.forEach(tld => {
+          if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
+            items.push(`${brandVariants.exactHyphenCasino}${tld}`);
+          }
+        });
+
+        // 3. casinotucan.com (слитный) - ПЕРВЫЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrandSlit) {
+          domainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
+              items.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
+            }
+          });
+        }
+
+        // 4. casino-tucan.com (дефисный) - ВТОРОЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrand) {
+          domainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
+              items.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
+      } else {
+        // Когда ввод НЕ содержит "casino" - порядок ВАЖЕН!
+
+        // 1. tucan.com
+        domainsList.forEach(tld => {
+          if (!shouldExcludeVariant(brandVariants.exact, tld)) {
+            items.push(`${brandVariants.exact}${tld}`);
+          }
+        });
+
+        // 2. tucancasino.com
+        domainsList.forEach(tld => {
+          if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
+            items.push(`${brandVariants.withCasino}${tld}`);
+          }
+        });
+
+        // 3. tucan-casino.com
+        domainsList.forEach(tld => {
+          if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
+            items.push(`${brandVariants.exactHyphenCasino}${tld}`);
+          }
+        });
+
+        // 4. casinotucan.com (слитный) - ПЕРВЫЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrandSlit) {
+          domainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
+              items.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
+            }
+          });
+        }
+
+        // 5. casino-tucan.com (дефисный) - ВТОРОЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrand) {
+          domainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
+              items.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
+
+        // 6. tucan-king.com (если двухсловный бренд)
+        if (isTwoWordBrand) {
+          domainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
+              items.push(`${brandVariants.withHyphen}${tld}`);
+            }
+          });
+        }
+      }
+
+      return items;
     };
 
     // ПРИОРИТЕТ №1: Специальные зоны (.bet, .win, .vegas, .bingo) - если есть окончание
@@ -151,92 +244,10 @@ function App() {
       }
     }
 
+    // Генерируем остальные глобальные домены
     if (commonDomains.length > 0) {
-      if (brandVariants.containsCasinoWord) {
-        // Когда ввод содержит "casino" - порядок ВАЖЕН!
-
-        // 1. tucancasino.com
-        commonDomains.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
-            commonDomainItems.push(`${brandVariants.withCasino}${tld}`);
-          }
-        });
-
-        // 2. tucan-casino.com
-        commonDomains.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
-            commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
-          }
-        });
-
-        // 3. casinotucan.com (слитный) - ПЕРВЫЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrandSlit) {
-          commonDomains.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
-              commonDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
-            }
-          });
-        }
-
-        // 4. casino-tucan.com (дефисный) - ВТОРОЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrand) {
-          commonDomains.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
-              commonDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
-            }
-          });
-        }
-      } else {
-        // Когда ввод НЕ содержит "casino" - порядок ВАЖЕН!
-
-        // 1. tucan.com
-        commonDomains.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.exact, tld)) {
-            commonDomainItems.push(`${brandVariants.exact}${tld}`);
-          }
-        });
-
-        // 2. tucancasino.com
-        commonDomains.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
-            commonDomainItems.push(`${brandVariants.withCasino}${tld}`);
-          }
-        });
-
-        // 3. tucan-casino.com
-        commonDomains.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
-            commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
-          }
-        });
-
-        // 4. casinotucan.com (слитный) - ПЕРВЫЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrandSlit) {
-          commonDomains.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
-              commonDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
-            }
-          });
-        }
-
-        // 5. casino-tucan.com (дефисный) - ВТОРОЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrand) {
-          commonDomains.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
-              commonDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
-            }
-          });
-        }
-
-        // 6. tucan-king.com (если двухсловный бренд)
-        if (isTwoWordBrand) {
-          commonDomains.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
-              commonDomainItems.push(`${brandVariants.withHyphen}${tld}`);
-            }
-          });
-        }
-      }
+      const generatedGlobalDomains = generateDomains(commonDomains, brandVariants, containsCasinoWord, isTwoWordBrand);
+      commonDomainItems.push(...generatedGlobalDomains);
     }
 
     if (commonDomainItems.length > 0) {
@@ -248,93 +259,7 @@ function App() {
 
     // ЛОКАЛЬНЫЕ ДОМЕНЫ
     if (localDomainsList.length > 0) {
-      const localDomainItems: string[] = [];
-
-      if (brandVariants.containsCasinoWord) {
-        // Когда ввод содержит "casino" - порядок ВАЖЕН!
-
-        // 1. tucancasino.uk
-        localDomainsList.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
-            localDomainItems.push(`${brandVariants.withCasino}${tld}`);
-          }
-        });
-
-        // 2. tucan-casino.uk
-        localDomainsList.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
-            localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
-          }
-        });
-
-        // 3. casinotucan.uk (слитный) - ПЕРВЫЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrandSlit) {
-          localDomainsList.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
-              localDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
-            }
-          });
-        }
-
-        // 4. casino-tucan.uk (дефисный) - ВТОРОЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrand) {
-          localDomainsList.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
-              localDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
-            }
-          });
-        }
-      } else {
-        // Когда ввод НЕ содержит "casino" - порядок ВАЖЕН!
-
-        // 1. tucan.uk
-        localDomainsList.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.exact, tld)) {
-            localDomainItems.push(`${brandVariants.exact}${tld}`);
-          }
-        });
-
-        // 2. tucancasino.uk
-        localDomainsList.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
-            localDomainItems.push(`${brandVariants.withCasino}${tld}`);
-          }
-        });
-
-        // 3. tucan-casino.uk
-        localDomainsList.forEach(tld => {
-          if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
-            localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
-          }
-        });
-
-        // 4. casinotucan.uk (слитный) - ПЕРВЫЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrandSlit) {
-          localDomainsList.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
-              localDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
-            }
-          });
-        }
-
-        // 5. casino-tucan.uk (дефисный) - ВТОРОЙ из casino- вариантов
-        if (brandVariants.casinoPrefixBrand) {
-          localDomainsList.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
-              localDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
-            }
-          });
-        }
-
-        // 6. tucan-king.uk (если двухсловный бренд)
-        if (isTwoWordBrand) {
-          localDomainsList.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
-              localDomainItems.push(`${brandVariants.withHyphen}${tld}`);
-            }
-          });
-        }
-      }
+      const localDomainItems = generateDomains(localDomainsList, brandVariants, containsCasinoWord, isTwoWordBrand);
 
       if (localDomainItems.length > 0) {
         newLines.push({ type: 'header', text: 'Локальные домены' });
