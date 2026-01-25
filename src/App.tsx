@@ -3,8 +3,8 @@ import './styles/App.css';
 
 function App() {
   const [inputValue, setInputValue] = useState<string>('');
-  const [globalDomainsInput, setGlobalDomainsInput] = useState<string>('.casino .bet .com .org .net .io .win .vegas .bingo');
-  const [localDomainsInput, setLocalDomainsInput] = useState<string>('.uk .co.uk .org.uk .me.uk .gb.net .uk.com .uk.net');
+  const [globalDomainsInput, setGlobalDomainsInput] = useState<string>('.casino .com .org .win .bingo');
+  const [localDomainsInput, setLocalDomainsInput] = useState<string>('.uk .co.uk .org.uk');
   const [outputLines, setOutputLines] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -39,7 +39,13 @@ function App() {
       brandExactHyphenCasino = brandExact + '-casino';
     }
 
-    // Новый вариант: "casino-" + brand (добавляем всегда, если бренд не заканчивается на casino)
+    // Вариант: "casino" + brand (слитный) - ПЕРВЫЙ (важен порядок!)
+    let casinoPrefixBrandSlit = null;
+    if (!brandExact.endsWith('casino')) {
+      casinoPrefixBrandSlit = 'casino' + brandExact;
+    }
+
+    // Вариант: "casino-" + brand (дефисный) - ВТОРОЙ (важен порядок!)
     let casinoPrefixBrand = null;
     if (!brandExact.endsWith('casino')) {
       casinoPrefixBrand = 'casino-' + brandExact;
@@ -50,7 +56,8 @@ function App() {
       withHyphen: brandWithHyphen,
       withCasino: brandWithCasino,
       exactHyphenCasino: brandExactHyphenCasino,
-      casinoPrefixBrand: casinoPrefixBrand,
+      casinoPrefixBrandSlit: casinoPrefixBrandSlit, // ПЕРВЫЙ: слитный
+      casinoPrefixBrand: casinoPrefixBrand,         // ВТОРОЙ: дефисный
       containsCasinoWord: containsCasinoWord
     };
 
@@ -146,18 +153,32 @@ function App() {
 
     if (commonDomains.length > 0) {
       if (brandVariants.containsCasinoWord) {
+        // Когда ввод содержит "casino" - порядок ВАЖЕН!
+
+        // 1. tucancasino.com
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             commonDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
+        // 2. tucan-casino.com
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
+        // 3. casinotucan.com (слитный) - ПЕРВЫЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrandSlit) {
+          commonDomains.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
+              commonDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
+            }
+          });
+        }
+
+        // 4. casino-tucan.com (дефисный) - ВТОРОЙ из casino- вариантов
         if (brandVariants.casinoPrefixBrand) {
           commonDomains.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
@@ -166,36 +187,52 @@ function App() {
           });
         }
       } else {
+        // Когда ввод НЕ содержит "casino" - порядок ВАЖЕН!
+
+        // 1. tucan.com
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exact, tld)) {
             commonDomainItems.push(`${brandVariants.exact}${tld}`);
           }
         });
 
+        // 2. tucancasino.com
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             commonDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
-        if (isTwoWordBrand) {
-          commonDomains.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
-              commonDomainItems.push(`${brandVariants.withHyphen}${tld}`);
-            }
-          });
-        }
-
+        // 3. tucan-casino.com
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
+        // 4. casinotucan.com (слитный) - ПЕРВЫЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrandSlit) {
+          commonDomains.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
+              commonDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
+            }
+          });
+        }
+
+        // 5. casino-tucan.com (дефисный) - ВТОРОЙ из casino- вариантов
         if (brandVariants.casinoPrefixBrand) {
           commonDomains.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
               commonDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
+
+        // 6. tucan-king.com (если двухсловный бренд)
+        if (isTwoWordBrand) {
+          commonDomains.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
+              commonDomainItems.push(`${brandVariants.withHyphen}${tld}`);
             }
           });
         }
@@ -214,18 +251,32 @@ function App() {
       const localDomainItems: string[] = [];
 
       if (brandVariants.containsCasinoWord) {
+        // Когда ввод содержит "casino" - порядок ВАЖЕН!
+
+        // 1. tucancasino.uk
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             localDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
+        // 2. tucan-casino.uk
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
+        // 3. casinotucan.uk (слитный) - ПЕРВЫЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrandSlit) {
+          localDomainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
+              localDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
+            }
+          });
+        }
+
+        // 4. casino-tucan.uk (дефисный) - ВТОРОЙ из casino- вариантов
         if (brandVariants.casinoPrefixBrand) {
           localDomainsList.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
@@ -234,36 +285,52 @@ function App() {
           });
         }
       } else {
+        // Когда ввод НЕ содержит "casino" - порядок ВАЖЕН!
+
+        // 1. tucan.uk
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exact, tld)) {
             localDomainItems.push(`${brandVariants.exact}${tld}`);
           }
         });
 
+        // 2. tucancasino.uk
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             localDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
-        if (isTwoWordBrand) {
-          localDomainsList.forEach(tld => {
-            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
-              localDomainItems.push(`${brandVariants.withHyphen}${tld}`);
-            }
-          });
-        }
-
+        // 3. tucan-casino.uk
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
+        // 4. casinotucan.uk (слитный) - ПЕРВЫЙ из casino- вариантов
+        if (brandVariants.casinoPrefixBrandSlit) {
+          localDomainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrandSlit!, tld)) {
+              localDomainItems.push(`${brandVariants.casinoPrefixBrandSlit}${tld}`);
+            }
+          });
+        }
+
+        // 5. casino-tucan.uk (дефисный) - ВТОРОЙ из casino- вариантов
         if (brandVariants.casinoPrefixBrand) {
           localDomainsList.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
               localDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
+
+        // 6. tucan-king.uk (если двухсловный бренд)
+        if (isTwoWordBrand) {
+          localDomainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
+              localDomainItems.push(`${brandVariants.withHyphen}${tld}`);
             }
           });
         }
@@ -274,56 +341,6 @@ function App() {
         localDomainItems.forEach(item => {
           newLines.push({ type: 'item', text: item });
         });
-      }
-    }
-
-    // ОБРАТНОЕ НАЗВАНИЕ
-    if (cleanBrand.startsWith('casino')) {
-      const reversedBrand = cleanBrand.replace(/^casino/, '');
-      if (reversedBrand) {
-        const reversedExact = reversedBrand.replace(/[-\s]/g, '');
-        const reversedWithHyphen = reversedBrand.replace(/\s+/g, '-');
-
-        const reverseItems: string[] = [];
-
-        if (!shouldExcludeVariant(reversedExact, '.com')) {
-          reverseItems.push(`${reversedExact}.com`);
-        }
-
-        let reversedWithCasino = reversedExact;
-        if (!reversedExact.endsWith('casino')) {
-          reversedWithCasino = reversedExact + 'casino';
-        }
-        if (!shouldExcludeVariant(reversedWithCasino, '.com')) {
-          reverseItems.push(`${reversedWithCasino}.com`);
-        }
-
-        if ((/\s+/.test(reversedBrand) || /-/.test(reversedBrand)) &&
-          !shouldExcludeVariant(reversedWithHyphen, '.com')) {
-          reverseItems.push(`${reversedWithHyphen}.com`);
-        }
-
-        let reversedExactHyphenCasino = reversedExact;
-        if (!reversedExact.endsWith('casino')) {
-          reversedExactHyphenCasino = reversedExact + '-casino';
-        }
-        if (!shouldExcludeVariant(reversedExactHyphenCasino, '.com')) {
-          reverseItems.push(`${reversedExactHyphenCasino}.com`);
-        }
-
-        if (brandVariants.casinoPrefixBrand) {
-          const reversedCasinoPrefix = 'casino-' + reversedExact;
-          if (!shouldExcludeVariant(reversedCasinoPrefix, '.com')) {
-            reverseItems.push(`${reversedCasinoPrefix}.com`);
-          }
-        }
-
-        if (reverseItems.length > 0) {
-          newLines.push({ type: 'header', text: 'Обратное название' });
-          reverseItems.forEach(item => {
-            newLines.push({ type: 'item', text: item });
-          });
-        }
       }
     }
 
