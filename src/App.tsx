@@ -3,8 +3,8 @@ import './styles/App.css';
 
 function App() {
   const [inputValue, setInputValue] = useState<string>('');
-  const [globalDomainsInput, setGlobalDomainsInput] = useState<string>('.casino\n.bet\n.com\n.org\n.net\n.io\n.win\n.vegas\n.bingo');
-  const [localDomainsInput, setLocalDomainsInput] = useState<string>('.uk\n.co.uk\n.org.uk\n.me.uk\n.gb.net\n.uk.com\n.uk.net');
+  const [globalDomainsInput, setGlobalDomainsInput] = useState<string>('.casino .bet .com .org .net .io .win .vegas .bingo');
+  const [localDomainsInput, setLocalDomainsInput] = useState<string>('.uk .co.uk .org.uk .me.uk .gb.net .uk.com .uk.net');
   const [outputLines, setOutputLines] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -20,7 +20,7 @@ function App() {
     // Проверяем, содержит ли ввод слово "casino"
     const containsCasinoWord = /\bcasino\b/i.test(originalBrand);
 
-    let cleanBrand = originalBrand.toLowerCase().replace(/\s+casino\s*/i, '');
+    const cleanBrand = originalBrand.toLowerCase().replace(/\s+casino\s*/i, '');
     const isTwoWordBrand = /\s+/.test(cleanBrand) || /-/.test(cleanBrand);
 
     // Основные варианты бренда
@@ -40,11 +40,8 @@ function App() {
     }
 
     // Новый вариант: "casino-" + brand (добавляем всегда, если бренд не заканчивается на casino)
-    // ИСПРАВЛЕНО: используем brandExact (без пробелов и дефисов) для casino- префикса
     let casinoPrefixBrand = null;
-    // Если бренд не заканчивается на casino, добавляем вариант с префиксом casino-
     if (!brandExact.endsWith('casino')) {
-      // ИСПРАВЛЕНО: используем brandExact (без дефисов) для префикса casino-
       casinoPrefixBrand = 'casino-' + brandExact;
     }
 
@@ -57,31 +54,42 @@ function App() {
       containsCasinoWord: containsCasinoWord
     };
 
-    // Парсинг доменов
-    const globalDomainsList = globalDomainsInput
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(tld => tld.startsWith('.') ? tld : `.${tld}`);
+    // Парсинг доменов - поддерживает и переносы строк, и пробелы
+    const parseDomains = (input: string): string[] => {
+      return input
+        .split(/[\n\s]+/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(tld => {
+          const cleanTld = tld.replace(/^\.+/, '.');
+          return cleanTld.startsWith('.') ? cleanTld : `.${cleanTld}`;
+        })
+        .filter((tld, index, self) => self.indexOf(tld) === index);
+    };
 
-    const localDomainsList = localDomainsInput
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(tld => tld.startsWith('.') ? tld : `.${tld}`);
+    const globalDomainsList = parseDomains(globalDomainsInput);
+    const localDomainsList = parseDomains(localDomainsInput);
 
-    // Разделяем глобальные домены по типам
+    // Список ВСЕХ возможных доменов из ввода пользователя
+    const allUserDomains = [...globalDomainsList, ...localDomainsList];
+
+    // Разделяем глобальные домены по типам - теперь проверяем только те, что есть у пользователя
     const specialDomains = ['.bet', '.win', '.vegas', '.bingo'];
     const casinoDomain = '.casino';
+
+    // Оставляем только те специальные домены, которые есть в списке пользователя
+    const availableSpecialDomains = specialDomains.filter(domain =>
+      allUserDomains.includes(domain)
+    );
+
     const commonDomains = globalDomainsList.filter(
-      domain => !specialDomains.includes(domain) && domain !== casinoDomain
+      domain => !availableSpecialDomains.includes(domain) && domain !== casinoDomain
     );
 
     const newLines: Array<{type: 'header' | 'item', text: string}> = [];
 
     // Вспомогательная функция для проверки, нужно ли исключать вариант
     const shouldExcludeVariant = (brand: string, domain: string) => {
-      // Исключаем случаи типа "casino.casino", "verywellcasino.casino" и т.д.
       if (domain === '.casino' && (brand === 'casino' || brand.endsWith('casino'))) {
         return true;
       }
@@ -89,70 +97,67 @@ function App() {
     };
 
     // ПРИОРИТЕТ №1: Специальные зоны (.bet, .win, .vegas, .bingo) - если есть окончание
-    const hasSpecialEnding = specialDomains.some(domain => {
-      const ending = domain.substring(1); // Убираем точку
+    // Показываем специальные зоны только если бренд НЕ содержит слово casino в оригинальном вводе
+    const hasSpecialEnding = !containsCasinoWord && availableSpecialDomains.some(domain => {
+      const ending = domain.substring(1);
       return brandVariants.exact.endsWith(ending);
     });
 
-    if (hasSpecialEnding) {
+    if (hasSpecialEnding && availableSpecialDomains.length > 0) {
       newLines.push({ type: 'header', text: 'Специальные зоны (.bet/.win/.vegas/.bingo)' });
 
-      // Собираем варианты для специальных зон
       const specialZoneItems: string[] = [];
 
-      // Проверяем каждую специальную зону
-      specialDomains.forEach(domain => {
-        const ending = domain.substring(1); // Убираем точку
+      // Проверяем только те специальные домены, которые есть у пользователя
+      availableSpecialDomains.forEach(domain => {
+        const ending = domain.substring(1);
         if (brandVariants.exact.endsWith(ending)) {
           const brandWithoutEnding = brandVariants.exact.replace(new RegExp(`${ending}$`, 'i'), '');
-          if (brandWithoutEnding) {
-            // ТОЛЬКО основной вариант без окончания + домен
-            // НЕ добавляем withCasino варианты и casinoPrefixBrand варианты для специальных зон
-            if (!shouldExcludeVariant(brandWithoutEnding, domain)) {
-              specialZoneItems.push(`${brandWithoutEnding}${domain}`);
-            }
-            // УБИРАЕМ все остальные варианты для специальных зон
+          if (brandWithoutEnding && !shouldExcludeVariant(brandWithoutEnding, domain)) {
+            specialZoneItems.push(`${brandWithoutEnding}${domain}`);
           }
         }
       });
 
-      // Добавляем отсортированные items
-      specialZoneItems.forEach(item => {
-        newLines.push({ type: 'item', text: item });
-      });
+      // Добавляем только если есть результаты
+      if (specialZoneItems.length > 0) {
+        specialZoneItems.forEach(item => {
+          newLines.push({ type: 'item', text: item });
+        });
+      } else {
+        // Убираем заголовок, если нет результатов
+        newLines.pop();
+      }
     }
 
     // ГЛОБАЛЬНЫЕ ДОМЕНЫ (включая .casino)
     const commonDomainItems: string[] = [];
 
-    // Собираем домены .casino
-    if (!shouldExcludeVariant(brandVariants.exact, '.casino')) {
-      commonDomainItems.push(`${brandVariants.exact}.casino`);
+    // Добавляем .casino только если он есть в списке пользователя
+    if (allUserDomains.includes('.casino')) {
+      if (!shouldExcludeVariant(brandVariants.exact, '.casino')) {
+        commonDomainItems.push(`${brandVariants.exact}.casino`);
+      }
+
+      if (isTwoWordBrand && !shouldExcludeVariant(brandVariants.withHyphen, '.casino')) {
+        commonDomainItems.push(`${brandVariants.withHyphen}.casino`);
+      }
     }
 
-    if (isTwoWordBrand && !shouldExcludeVariant(brandVariants.withHyphen, '.casino')) {
-      commonDomainItems.push(`${brandVariants.withHyphen}.casino`);
-    }
-
-    // Логика для остальных глобальных доменов (.com, .org, .net, .io)
     if (commonDomains.length > 0) {
-      // Логика для брендов, введенных со словом "casino"
       if (brandVariants.containsCasinoWord) {
-        // Показываем withCasino и exactHyphenCasino варианты
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             commonDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
-        // Добавляем exactHyphenCasino варианты
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
-        // Добавляем casinoPrefixBrand варианты (ОБНОВЛЕНО: добавляем и для брендов с casino в названии)
         if (brandVariants.casinoPrefixBrand) {
           commonDomains.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
@@ -161,23 +166,18 @@ function App() {
           });
         }
       } else {
-        // Для брендов без слова "casino" показываем все варианты
-
-        // Сначала exact варианты
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exact, tld)) {
             commonDomainItems.push(`${brandVariants.exact}${tld}`);
           }
         });
 
-        // Затем withCasino варианты
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             commonDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
-        // Затем withHyphen варианты (только если бренд из 2+ слов)
         if (isTwoWordBrand) {
           commonDomains.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
@@ -186,14 +186,12 @@ function App() {
           });
         }
 
-        // Затем exactHyphenCasino варианты
         commonDomains.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
-        // Добавляем casinoPrefixBrand варианты
         if (brandVariants.casinoPrefixBrand) {
           commonDomains.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
@@ -204,7 +202,6 @@ function App() {
       }
     }
 
-    // Добавляем заголовок и все глобальные домены (включая .casino)
     if (commonDomainItems.length > 0) {
       newLines.push({ type: 'header', text: 'Глобальные домены' });
       commonDomainItems.forEach(item => {
@@ -214,27 +211,21 @@ function App() {
 
     // ЛОКАЛЬНЫЕ ДОМЕНЫ
     if (localDomainsList.length > 0) {
-      newLines.push({ type: 'header', text: 'Локальные домены' });
-
       const localDomainItems: string[] = [];
 
-      // Та же логика для локальных доменов
       if (brandVariants.containsCasinoWord) {
-        // Показываем withCasino и exactHyphenCasino варианты
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             localDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
-        // Добавляем exactHyphenCasino варианты
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
-        // Добавляем casinoPrefixBrand варианты для локальных доменов (ОБНОВЛЕНО)
         if (brandVariants.casinoPrefixBrand) {
           localDomainsList.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
@@ -243,23 +234,18 @@ function App() {
           });
         }
       } else {
-        // Для брендов без слова "casino" показываем все варианты
-
-        // Сначала exact варианты
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exact, tld)) {
             localDomainItems.push(`${brandVariants.exact}${tld}`);
           }
         });
 
-        // Затем withCasino варианты
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.withCasino, tld)) {
             localDomainItems.push(`${brandVariants.withCasino}${tld}`);
           }
         });
 
-        // Затем withHyphen варианты (только если бренд из 2+ слов)
         if (isTwoWordBrand) {
           localDomainsList.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.withHyphen, tld)) {
@@ -268,14 +254,12 @@ function App() {
           });
         }
 
-        // Затем exactHyphenCasino варианты
         localDomainsList.forEach(tld => {
           if (!shouldExcludeVariant(brandVariants.exactHyphenCasino, tld)) {
             localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
 
-        // Добавляем casinoPrefixBrand варианты для локальных доменов
         if (brandVariants.casinoPrefixBrand) {
           localDomainsList.forEach(tld => {
             if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
@@ -285,16 +269,16 @@ function App() {
         }
       }
 
-      // Добавляем отсортированные items
-      localDomainItems.forEach(item => {
-        newLines.push({ type: 'item', text: item });
-      });
+      if (localDomainItems.length > 0) {
+        newLines.push({ type: 'header', text: 'Локальные домены' });
+        localDomainItems.forEach(item => {
+          newLines.push({ type: 'item', text: item });
+        });
+      }
     }
 
-    // ОБРАТНОЕ НАЗВАНИЕ (если начинается с casino)
+    // ОБРАТНОЕ НАЗВАНИЕ
     if (cleanBrand.startsWith('casino')) {
-      newLines.push({ type: 'header', text: 'Обратное название' });
-
       const reversedBrand = cleanBrand.replace(/^casino/, '');
       if (reversedBrand) {
         const reversedExact = reversedBrand.replace(/[-\s]/g, '');
@@ -302,7 +286,6 @@ function App() {
 
         const reverseItems: string[] = [];
 
-        // Для обратного названия: exact -> withCasino -> withHyphen -> exactHyphenCasino
         if (!shouldExcludeVariant(reversedExact, '.com')) {
           reverseItems.push(`${reversedExact}.com`);
         }
@@ -320,7 +303,6 @@ function App() {
           reverseItems.push(`${reversedWithHyphen}.com`);
         }
 
-        // Добавляем exactHyphenCasino для обратного названия
         let reversedExactHyphenCasino = reversedExact;
         if (!reversedExact.endsWith('casino')) {
           reversedExactHyphenCasino = reversedExact + '-casino';
@@ -329,23 +311,22 @@ function App() {
           reverseItems.push(`${reversedExactHyphenCasino}.com`);
         }
 
-        // Добавляем casinoPrefixBrand для обратного названия (если нужно)
         if (brandVariants.casinoPrefixBrand) {
-          // ИСПРАВЛЕНО: используем reversedExact (без дефисов)
           const reversedCasinoPrefix = 'casino-' + reversedExact;
           if (!shouldExcludeVariant(reversedCasinoPrefix, '.com')) {
             reverseItems.push(`${reversedCasinoPrefix}.com`);
           }
         }
 
-        // Добавляем отсортированные items
-        reverseItems.forEach(item => {
-          newLines.push({ type: 'item', text: item });
-        });
+        if (reverseItems.length > 0) {
+          newLines.push({ type: 'header', text: 'Обратное название' });
+          reverseItems.forEach(item => {
+            newLines.push({ type: 'item', text: item });
+          });
+        }
       }
     }
 
-    // Конвертируем в строки для отображения
     const outputStrings = newLines.map(line => line.text);
     setOutputLines(outputStrings);
     inputRef.current?.focus();
@@ -408,7 +389,7 @@ function App() {
             rows={4}
           />
           <div className="domainsHint">
-            Пример [ .casino .bet .com .org .net .io .win .vegas .bingo ] - каждый с новой строки
+            Пример: .casino .bet .com .org .net .io .win .vegas .bingo
           </div>
         </div>
 
@@ -428,7 +409,7 @@ function App() {
             rows={4}
           />
           <div className="domainsHint">
-            Пример [ .uk .co.uk .org.uk .me.uk .gb.net .uk.com .uk.net ] - каждый с новой строки
+            Пример: .uk .co.uk .org.uk .me.uk .gb.net .uk.com .uk.net
           </div>
         </div>
 

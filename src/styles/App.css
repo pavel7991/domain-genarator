@@ -148,7 +148,8 @@
   background: #0f172a;
   color: #fff;
   resize: vertical;
-  min-height: 100px;
+  min-height: 80px;
+  height: 80px;
   line-height: 1.5;
   transition: border-color 0.2s;
 }
