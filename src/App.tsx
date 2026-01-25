@@ -39,12 +39,21 @@ function App() {
       brandExactHyphenCasino = brandExact + '-casino';
     }
 
+    // Новый вариант: "casino-" + brand (добавляем всегда, если бренд не заканчивается на casino)
+    // ИСПРАВЛЕНО: используем brandExact (без пробелов и дефисов) для casino- префикса
+    let casinoPrefixBrand = null;
+    // Если бренд не заканчивается на casino, добавляем вариант с префиксом casino-
+    if (!brandExact.endsWith('casino')) {
+      // ИСПРАВЛЕНО: используем brandExact (без дефисов) для префикса casino-
+      casinoPrefixBrand = 'casino-' + brandExact;
+    }
+
     const brandVariants = {
       exact: brandExact,
       withHyphen: brandWithHyphen,
       withCasino: brandWithCasino,
       exactHyphenCasino: brandExactHyphenCasino,
-      // Флаг: был ли введен бренд со словом "casino"
+      casinoPrefixBrand: casinoPrefixBrand,
       containsCasinoWord: containsCasinoWord
     };
 
@@ -97,19 +106,12 @@ function App() {
         if (brandVariants.exact.endsWith(ending)) {
           const brandWithoutEnding = brandVariants.exact.replace(new RegExp(`${ending}$`, 'i'), '');
           if (brandWithoutEnding) {
-            // Для специальных зон: сначала exact, потом withCasino
+            // ТОЛЬКО основной вариант без окончания + домен
+            // НЕ добавляем withCasino варианты и casinoPrefixBrand варианты для специальных зон
             if (!shouldExcludeVariant(brandWithoutEnding, domain)) {
               specialZoneItems.push(`${brandWithoutEnding}${domain}`);
             }
-
-            // withCasino вариант (только если не заканчивается на casino)
-            let brandWithCasinoVariant = brandWithoutEnding;
-            if (!brandWithoutEnding.endsWith('casino')) {
-              brandWithCasinoVariant = brandWithoutEnding + 'casino';
-            }
-            if (!shouldExcludeVariant(brandWithCasinoVariant, domain)) {
-              specialZoneItems.push(`${brandWithCasinoVariant}${domain}`);
-            }
+            // УБИРАЕМ все остальные варианты для специальных зон
           }
         }
       });
@@ -149,6 +151,15 @@ function App() {
             commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
+
+        // Добавляем casinoPrefixBrand варианты (ОБНОВЛЕНО: добавляем и для брендов с casino в названии)
+        if (brandVariants.casinoPrefixBrand) {
+          commonDomains.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
+              commonDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
       } else {
         // Для брендов без слова "casino" показываем все варианты
 
@@ -181,6 +192,15 @@ function App() {
             commonDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
+
+        // Добавляем casinoPrefixBrand варианты
+        if (brandVariants.casinoPrefixBrand) {
+          commonDomains.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
+              commonDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
       }
     }
 
@@ -213,6 +233,15 @@ function App() {
             localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
+
+        // Добавляем casinoPrefixBrand варианты для локальных доменов (ОБНОВЛЕНО)
+        if (brandVariants.casinoPrefixBrand) {
+          localDomainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
+              localDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
       } else {
         // Для брендов без слова "casino" показываем все варианты
 
@@ -245,6 +274,15 @@ function App() {
             localDomainItems.push(`${brandVariants.exactHyphenCasino}${tld}`);
           }
         });
+
+        // Добавляем casinoPrefixBrand варианты для локальных доменов
+        if (brandVariants.casinoPrefixBrand) {
+          localDomainsList.forEach(tld => {
+            if (!shouldExcludeVariant(brandVariants.casinoPrefixBrand!, tld)) {
+              localDomainItems.push(`${brandVariants.casinoPrefixBrand}${tld}`);
+            }
+          });
+        }
       }
 
       // Добавляем отсортированные items
@@ -289,6 +327,15 @@ function App() {
         }
         if (!shouldExcludeVariant(reversedExactHyphenCasino, '.com')) {
           reverseItems.push(`${reversedExactHyphenCasino}.com`);
+        }
+
+        // Добавляем casinoPrefixBrand для обратного названия (если нужно)
+        if (brandVariants.casinoPrefixBrand) {
+          // ИСПРАВЛЕНО: используем reversedExact (без дефисов)
+          const reversedCasinoPrefix = 'casino-' + reversedExact;
+          if (!shouldExcludeVariant(reversedCasinoPrefix, '.com')) {
+            reverseItems.push(`${reversedCasinoPrefix}.com`);
+          }
         }
 
         // Добавляем отсортированные items
